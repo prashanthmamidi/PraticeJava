@@ -1,0 +1,22 @@
+<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed, monospace;
+                color: #000000; background-color: #eee;
+                font-size: 12px; border: 1px dashed #999999;
+                line-height: 14px; padding: 5px;
+                overflow: auto; width: 100%">
+    <code style="color:#000000;word-wrap:normal;">
+
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache>
+	<defaultCache maxElementsInMemory="10000" eternal="false"
+		timeToIdleSeconds="120" timeToLiveSeconds="120" overflowToDisk="true"
+		diskSpoolBufferSizeMB="30" maxElementsOnDisk="10000000"
+		diskPersistent="false" diskExpiryThreadIntervalSeconds="120"
+		memoryStoreEvictionPolicy="LRU" />
+		
+	<cache name="newsCache" maxElementsInMemory="1"
+		maxElementsOnDisk="1" eternal="false" overflowToDisk="true"
+		diskSpoolBufferSizeMB="20" timeToIdleSeconds="300" timeToLiveSeconds="600"
+		memoryStoreEvictionPolicy="LRU" />
+</ehcache>
+        </code>
+    </pre>

@@ -1,0 +1,62 @@
+
+Spring uses Factory Pattern - as the creation of objects is done through Bean Factory
+
+Setter Injection - using property tag
+Constructor Injection - using constructor-arg -- we use type and index to solve ambiguity
+
+Inner Beans - A bean defined within another bean for a property
+Aliases - alternate bean name - can be specified using <alias> tag and also using the name attribute of <bean>
+idref - validating to ensure the bean referenced using only the id attribute
+
+we can use autowire = "byName/byType/constructor"
+
+Bean Scopes
+1. Singleton - default, can have only instance at any point of time for a given spring container
+2. Prototype - each call will a separate bean
+The below are used in web-context
+3. request - each request will have a new bean
+4. session - the bean will be reused within the session
+5. global session - used in the context of portlets
+
+
+ApplicationContextAware - need to override setApplicationContext()
+BeanNameAware - need to override setBeanName()
+
+Bean Definition Inheritance
+------------------------------
+--> One bean can use re-use the other bean's properties - we have to use 'parent' attribute
+
+-----------------------------------------------------------------
+Life Cycle Methods
+------------------------------------------------------------------
+--> use ctx.registerShutdownHook() to close/destroy all the beans tht hv been configured
+InitializingBean - need to implement afterPropertiesSet() - will execute once bean has finished initialisation
+DisposableBean - need to implement destroy() - will execute before destroying the bean
+-----------------------Alternative --------------------------
+write custom methods initCustom() and destroyCustom()
+In the spring config, declare in the bean definition as follows:
+init-method="initCustom"
+destroy-method ="destroyCustom"
+------------------Alternative - we can define globally for all beans ----------------
+In the spring config, declare in the root <beans> tag
+default-init-method="initCustom"
+default-destroy-method ="destroyCustom"
+
+BeanPostProcessor
+-> Executes after every bean is initialised
+--> Need to implement the below callback methods:
+ postProcessBeforeInitialization(Object bean, String nameOfTheBean)
+ postProcessAfterInitialization(Object bean, String nameOfTheBean)
+--> Need to declare the bean which implements BeanPostProcessor in the config file
+
+BeanFactoryPostProcessor
+--> Executes when the beanFactory is initialized, then only the singleton's for the beans are initialized
+--> Need to implement the postProcessBeanFactory(ConfigurableListBeanFactory beanFactory)
+-->Ex:- provided by spring out-of-the box PropertyPlaceHolderConfigurer
+   <bean class="org.springframework.beans.factory.config.PropertyPlaceHolderConfigurer >
+        <property name="locations" value="xyz.properties" />
+   </bean>
+
+
+
+
