@@ -35,6 +35,7 @@ public class Producer implements Runnable {
             queue.put(msg);
         } catch (InterruptedException e) {
             e.printStackTrace();
+            Thread.currentThread().interrupt(); //Restoring the interrupted status so as not to swallow the interrupt.
         }
     }
 }
