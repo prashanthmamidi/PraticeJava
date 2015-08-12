@@ -10,18 +10,67 @@ public class SemaphoreDemo {
 
     public static void main(String[] args) {
         BoundedHasSet boundedHasSet = new BoundedHasSet(4);
-        IntStream.rangeClosed(1, 20)
-            .forEach(i -> {
+
+        Thread addElement = new AddElement(boundedHasSet);
+        addElement.start();
+
+        Thread removeElement = new RemoveElement(boundedHasSet);
+        removeElement.start();
+
+    }
+
+    private static class AddElement extends Thread {
+        private BoundedHasSet boundedHasSet;
+
+        public AddElement(BoundedHasSet boundedHasSet) {
+            this.boundedHasSet = boundedHasSet;
+        }
+
+        @Override
+        public void run() {
+            IntStream.rangeClosed(1, 20)
+                .forEach(i -> {
+                    try {
+                        System.out.println("Adding Element: " + i);
+                        /*
+                        While it is easy to construct a fixed-sized pool that fails if you request a resource from an empty pool,
+                        what you really want is to block if the pool is empty and unblock when it becomes nonempty again.
+                         */
+                        System.out.println("Added Element: " + boundedHasSet.add(i));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        Thread.currentThread().interrupt();
+                    }
+                });
+        }
+    }
+
+    private static class RemoveElement extends Thread {
+        private BoundedHasSet boundedHasSet;
+
+        public RemoveElement(BoundedHasSet boundedHasSet) {
+            this.boundedHasSet = boundedHasSet;
+        }
+
+        @Override
+        public void run() {
+            IntStream.rangeClosed(1, 20).forEach(i -> {
                 try {
-                    System.out.println(boundedHasSet.add(i));
+                    System.out.println("Removing Element... " + i);
+                    Thread.sleep(5000);
                     boundedHasSet.remove(i);
+                    System.out.println("Removed Element = " + i);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                    Thread.currentThread().interrupt();
                 }
             });
 
+
+        }
     }
 }
+
 /*
 The semaphore is initialized to the desired maximum size of the collection.
 The add operation acquires a permit before adding the item into the underlying collection.
