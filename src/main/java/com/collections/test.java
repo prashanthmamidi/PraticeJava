@@ -1,112 +1,155 @@
 package com.collections;
 
-import javax.xml.crypto.Data;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import static com.collections.COMMAND.*;
 import static java.lang.Long.parseLong;
-import static java.util.Comparator.comparingLong;
 
 public class test {
 
-    public static final String QUIT = "QUIT";
-    public static final String CREATE = "CREATE";
-    public static final String UPDATE = "UPDATE";
-    public static final String DELETE = "DELETE";
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
         Map<Integer, List<DataStore>> multiMap = new ConcurrentHashMap<>();
         List<DataStore> list;
 
         while (true) {
-            DataStore dataStore = read(scanner);
-            if (dataStore.getOperationType().equals(QUIT)) {
-                break;
-            }
+            String[] input = scanner.nextLine().split(" +");
+            if (validCommandType(input[0])) {
+                DataStore dataStore = process(input);
+                if (null != dataStore) {
+                    if (dataStore.getOperationType().equals(QUIT.name())) break;
 
-            if (dataStore.getOperationType().equals(CREATE)) {
-                if (multiMap.containsKey(dataStore.getId())) {
-                    System.out.println("ERR A history already exists for identifier " + dataStore.getId());
-                } else {
-                    list = new ArrayList<>();
-                    list.add(dataStore);
-                    multiMap.put(dataStore.getId(), list);
-                    System.out.println("OK " + dataStore.getData());
+                    if (dataStore.getOperationType().equals(CREATE.name())) {
+                        if (multiMap.containsKey(dataStore.getId())) {
+                            System.out.println("ERR A history already exists for identifier " + dataStore.getId());
+                        } else {
+                            list = new ArrayList<>();
+                            list.add(dataStore);
+                            multiMap.put(dataStore.getId(), list);
+                            System.out.println("OK " + dataStore.getData());
+                        }
                 }
-            }
 
-            if (dataStore.getOperationType().equals(UPDATE)) {
-                if (multiMap.containsKey(dataStore.getId())) {
-                    List<DataStore> dataStores = multiMap.get(dataStore.getId());
-                    String data = dataStores.get(dataStores.size() - 1).getData();
-                    dataStores.add(dataStore);
-                    System.out.println("OK " + data);
-                } else {
-                    System.out.println("ERR There's no history exists for identifier " + dataStore.getId() + "to update");
-                }
-            }
-
-            if (dataStore.getOperationType().equals(DELETE)) {
-                // chk if timestamp provided
-                if (null != dataStore.getTimeStamp()) {
-
-                } else {
-                    if (multiMap.containsKey(dataStore.getId())) {
-                        List<DataStore> dataStores = multiMap.get(dataStore.getId());
-                        Long maxTimestamp = dataStores.stream()
-                            .map(DataStore::getTimeStamp)
-                            .max(Long::compare).get();
-                        //.max(comparingLong(DataStore::getTimeStamp)).get().getTimeStamp();
-
-                        multiMap.remove(dataStore.getId());
-                        System.out.println("OK " + maxTimestamp);
-                    } else {
-                        System.out.println("Err There's no history exists for identifier " + dataStore.getId() + "to delete");
+                    if (dataStore.getOperationType().equals(UPDATE.name())) {
+                        if (multiMap.containsKey(dataStore.getId())) {
+                            List<DataStore> dataStores = multiMap.get(dataStore.getId());
+                            String data = dataStores.get(dataStores.size() - 1).getData();
+                            dataStores.add(dataStore);
+                            System.out.println("OK " + data);
+                        } else {
+                            System.out.println("ERR There's no history exists for identifier " + dataStore.getId() + " to update");
+                        }
                     }
-                }
+
+                    if (dataStore.getOperationType().equals(DELETE.name())) {
+                        // chk if timestamp provided
+                        if (null != dataStore.getTimeStamp()) {
+
+                    } else {
+                            if (multiMap.containsKey(dataStore.getId())) {
+                                List<DataStore> dataStores = multiMap.get(dataStore.getId());
+                                Long maxTimestamp = dataStores.stream()
+                                        .map(DataStore::getTimeStamp)
+                                        .max(Long::compare).get();
+                                //.max(comparingLong(DataStore::getTimeStamp)).get().getTimeStamp();
+
+                                multiMap.remove(dataStore.getId());
+                                System.out.println("OK " + maxTimestamp);
+                            } else {
+                                System.out.println("Err There's no history exists for identifier " + dataStore.getId() + "to delete");
+                            }
+                    }
 
 
-            }
+                    }
 
                 multiMap.forEach((k, v) -> System.out.println(k + "=" + v));
+                }
+            }
+            System.out.println("DONE!!!");
         }
-
-        System.out.println("DONE!!!");
     }
 
-    private static DataStore read(Scanner scanner) {
-        String[] split = scanner.nextLine().split(" ");
-        String operationType = split[0]; // VALIDATE OPERATION TYPE
-        if (split[0].equals(QUIT)) {
+    private static DataStore process(String[] input) throws Exception {
+        String operationType = input[0];
+        if (input[0].equals(QUIT.name())) {
             return getDataStore(operationType);
         }
-
-        if (split[0].equals(DELETE)) {
-            Long timeStamp = getLong(split, 1);
-            if (null != timeStamp)
-                return getDataStore(operationType, timeStamp);
-            else
-                return getDataStore(operationType);
+        if ((input[0].equals(CREATE.name()) || input[0].equals(UPDATE.name()))
+                && isValidCreateOrUpdateInput(input)) {
+            return new DataStore(getId(input), getTimestamp(input), input[3], operationType);
         }
-        Integer id = Integer.parseInt(split[1]);
-        Long timeStamp = getLong(split, 2);
-        String data = split[3];
-        return new DataStore(id, timeStamp, data, operationType);
+
+        if (input[0].equals(DELETE.name()) && isValidDeleteInput(input)) {
+            if (input.length == 3)
+                return getDataStore(getId(input), getTimestamp(input), operationType);
+            else
+                return getDataStore(getId(input), operationType);
+        }
+        return null;
     }
 
-    private static Long getLong(String[] split, int index) {
-        if (null != split[index]) return parseLong(split[index]);
-        else return null;
+    private static Boolean isValidCreateOrUpdateInput(String[] input) {
+        try {
+            getId(input);
+            getTimestamp(input);
+            String data = input[3];
+        } catch (Exception ex) {
+            System.out.println("Err Please provide a valid input");
+            return false;
+        }
+        return true;
+    }
+
+    private static Boolean isValidDeleteInput(String[] input) {
+        //<id> [ts]
+        try {
+            getId(input);
+            if (input.length == 3) getTimestamp(input);
+        } catch (Exception ex) {
+            System.out.println("Err Please provide a valid input");
+            return false;
+        }
+        return true;
+    }
+
+    private static Long getTimestamp(String[] input) throws Exception {
+        if (input.length >= 3)
+            return parseLong(input[2]);
+        throw new Exception("Invalid input");
+    }
+
+    private static Integer getId(String[] input) throws Exception {
+        if (input.length >= 2)
+            return Integer.parseInt(input[1]);
+        throw new Exception("Invalid input");
     }
 
     private static DataStore getDataStore(String operationType) {
         return new DataStore(operationType);
     }
 
-    private static DataStore getDataStore(String operationType, Long timeStamp) {
-        return new DataStore(operationType, timeStamp);
+    private static DataStore getDataStore(Integer id, String operationType) {
+        return new DataStore(id, operationType);
+    }
+
+    private static DataStore getDataStore(Integer id, Long timeStamp, String operationType) {
+        return new DataStore(id, timeStamp, operationType);
+    }
+
+    private static Boolean validCommandType(String commandType) {
+        try {
+            COMMAND.valueOf(commandType);
+        } catch (IllegalArgumentException ex) {
+            System.out.println("Err Please provide a valid operation");
+            return false;
+        }
+        return true;
     }
 }
+
+enum COMMAND {CREATE, UPDATE, DELETE, GET, LATEST, QUIT}

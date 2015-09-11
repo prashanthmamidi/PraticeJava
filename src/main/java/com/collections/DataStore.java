@@ -19,9 +19,19 @@ public class DataStore {
         this.operationType = operationType;
     }
 
-    public DataStore(String operationType, Long timeStamp) {
-        this.operationType = operationType;
+    public DataStore() {
+
+    }
+
+    public DataStore(Integer id, Long timeStamp, String operationType) {
+        this.id = id;
         this.timeStamp = timeStamp;
+        this.operationType = operationType;
+    }
+
+    public DataStore(Integer id, String operationType) {
+        this.id = id;
+        this.operationType = operationType;
     }
 
     public Integer getId() {
