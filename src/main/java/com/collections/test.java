@@ -1,129 +1,130 @@
 package com.collections;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.collections.COMMAND.*;
 import static java.lang.Long.parseLong;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static java.util.stream.Collectors.toList;
 
 public class test {
 
+    public static final String REGEX = " +";
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        Map<Integer, List<TemporalDataStore>> multiMap = new ConcurrentHashMap<>();
+        Map<Integer, List<Observation>> inMemoryDataStore = new ConcurrentHashMap<>();
+        boolean flag = true;
 
-        while (true) {
-            String[] input = scanner.nextLine().split(" +");
-            if (validCommandType(input[0])) {
-                TemporalDataStore temporalDataStore = process(input);
-                if (null != temporalDataStore) {
-                    if (isCommandEquals(temporalDataStore, QUIT)) {
-                        break;
+        while (flag) {
+            String[] input = scanner.nextLine().split(REGEX);
+                Optional<Observation> maybeObservation = getObservationFor(input);
+                if (maybeObservation.isPresent()) {
+                    Observation observation = maybeObservation.get();
+                    switch (valueOf(observation.getCommandType())) {
+                        case QUIT:
+                            flag = false;
+                            break;
+                        case CREATE:
+                            processCreate(inMemoryDataStore, observation);
+                            break;
+                        case UPDATE:
+                            processUpdate(inMemoryDataStore, observation);
+                            break;
+                        case DELETE:
+                            processDelete(inMemoryDataStore, observation);
                     }
-                    if (isCommandEquals(temporalDataStore, CREATE)) {
-                        processCreate(multiMap, temporalDataStore);
-                    }
-                    if (isCommandEquals(temporalDataStore, UPDATE)) {
-                        processUpdate(multiMap, temporalDataStore);
-                    }
-                    if (isCommandEquals(temporalDataStore, DELETE)) {
-                        processDelete(multiMap, temporalDataStore);
-                    }
-
-                multiMap.forEach((k, v) -> System.out.println(k + "=" + v));
+                    // print data
+                    inMemoryDataStore.forEach((k, v) -> System.out.println(k + "=" + v));
                 }
-            }
+
             System.out.println("DONE!!!");
         }
     }
 
-    private static boolean isCommandEquals(TemporalDataStore temporalDataStore, COMMAND command) {
-        return temporalDataStore.getOperationType().equals(command.name());
-    }
-
-    private static void processDelete(Map<Integer, List<TemporalDataStore>> multiMap, TemporalDataStore temporalDataStore) {
-        if (multiMap.containsKey(temporalDataStore.getId())) {
-            delete(multiMap, temporalDataStore);
+    private static void processDelete(Map<Integer, List<Observation>> inMemoryDataStore, Observation observation) {
+        if (inMemoryDataStore.containsKey(observation.getId())) {
+            delete(inMemoryDataStore, observation);
         } else {
-            System.out.println("Err There's no history exists for identifier " + temporalDataStore.getId() + " to delete");
+            System.out.println("Err There's no history exists for identifier " + observation.getId() + " to delete");
         }
     }
 
-    private static void delete(Map<Integer, List<TemporalDataStore>> multiMap, TemporalDataStore temporalDataStore) {
-        if (null != temporalDataStore.getTimeStamp()) { // DELETE <id> <timestamp>
-            deleteByIdAndTimestamp(multiMap, temporalDataStore);
-        } else { // DELETE <id>
-            deleteById(multiMap, temporalDataStore);
+    private static void delete(Map<Integer, List<Observation>> inMemoryDataStore, Observation observation) {
+        if (null != observation.getTimeStamp()) {
+            deleteByIdAndTimestamp(inMemoryDataStore, observation);
+        } else {
+            deleteById(inMemoryDataStore, observation);
         }
     }
 
-    private static void deleteById(Map<Integer, List<TemporalDataStore>> multiMap, TemporalDataStore temporalDataStore) {
-        Long maxTimestamp = multiMap.get(temporalDataStore.getId()).stream()
-                .map(TemporalDataStore::getTimeStamp)
+    private static void deleteById(Map<Integer, List<Observation>> inMemoryDataStore, Observation observation) {
+        Long maxTimestamp = inMemoryDataStore.get(observation.getId()).stream()
+                .map(Observation::getTimeStamp)
                 .max(Long::compare).get();
-        multiMap.remove(temporalDataStore.getId());
+        inMemoryDataStore.remove(observation.getId());
         System.out.println("OK " + maxTimestamp);
     }
 
-    private static void deleteByIdAndTimestamp(Map<Integer, List<TemporalDataStore>> multiMap, TemporalDataStore temporalDataStore) {
-        List<TemporalDataStore> filteredList = multiMap.get(temporalDataStore.getId()).stream()
-                .filter(ds -> temporalDataStore.getTimeStamp() > ds.getTimeStamp())
+    private static void deleteByIdAndTimestamp(Map<Integer, List<Observation>> inMemoryDataStore, Observation observation) {
+        List<Observation> filteredList = inMemoryDataStore.get(observation.getId()).stream()
+                .filter(ds -> observation.getTimeStamp() > ds.getTimeStamp())
                 .collect(toList());
-        multiMap.put(temporalDataStore.getId(), filteredList);
+        inMemoryDataStore.put(observation.getId(), filteredList);
 
-        List<TemporalDataStore> updatedTemporalDataStoreList = multiMap.get(temporalDataStore.getId());
-        if (!updatedTemporalDataStoreList.isEmpty()) {
-            System.out.println("OK " + updatedTemporalDataStoreList.get(updatedTemporalDataStoreList.size() - 1).getData());
+        List<Observation> updatedObservationList = inMemoryDataStore.get(observation.getId());
+        if (!updatedObservationList.isEmpty()) {
+            System.out.println("OK " + updatedObservationList.get(updatedObservationList.size() - 1).getData());
         } else {
             System.out.println("Err There's no available observation");
-            multiMap.remove(temporalDataStore.getId());
+            inMemoryDataStore.remove(observation.getId());
         }
     }
 
-    private static void processUpdate(Map<Integer, List<TemporalDataStore>> multiMap, TemporalDataStore temporalDataStore) {
-        if (multiMap.containsKey(temporalDataStore.getId())) {
-            List<TemporalDataStore> temporalDataStores = multiMap.get(temporalDataStore.getId());
-            String data = temporalDataStores.get(temporalDataStores.size() - 1).getData();
-            temporalDataStores.add(temporalDataStore);
+    private static void processUpdate(Map<Integer, List<Observation>> inMemoryDataStore, Observation observation) {
+        if (inMemoryDataStore.containsKey(observation.getId())) {
+            List<Observation> observations = inMemoryDataStore.get(observation.getId());
+            String data = observations.get(observations.size() - 1).getData();
+            observations.add(observation);
             System.out.println("OK " + data);
         } else {
-            System.out.println("ERR There's no history exists for identifier " + temporalDataStore.getId() + " to update");
+            System.out.println("ERR There's no history exists for identifier " + observation.getId() + " to update");
         }
     }
 
-    private static void processCreate(Map<Integer, List<TemporalDataStore>> multiMap, TemporalDataStore temporalDataStore) {
-        if (multiMap.containsKey(temporalDataStore.getId())) {
-            System.out.println("ERR A history already exists for identifier " + temporalDataStore.getId());
+    private static void processCreate(Map<Integer, List<Observation>> inMemoryDataStore, Observation observation) {
+        if (inMemoryDataStore.containsKey(observation.getId())) {
+            System.out.println("ERR A history already exists for identifier " + observation.getId());
         } else {
-            List<TemporalDataStore> list = new ArrayList<>();
-            list.add(temporalDataStore);
-            multiMap.put(temporalDataStore.getId(), list);
-            System.out.println("OK " + temporalDataStore.getData());
+            List<Observation> list = new ArrayList<>();
+            list.add(observation);
+            inMemoryDataStore.put(observation.getId(), list);
+            System.out.println("OK " + observation.getData());
         }
     }
 
-    private static TemporalDataStore process(String[] input) {
-        String operationType = input[0];
-        if (input[0].equals(QUIT.name())) {
-            return getDataStore(operationType);
-        }
-        if ((input[0].equals(CREATE.name()) || input[0].equals(UPDATE.name()))
-                && isValidCreateOrUpdateInput(input)) {
-            return getDataStore(Integer.parseInt(input[1]), parseLong(input[2]), input[3], operationType);
-        }
+    private static Optional<Observation> getObservationFor(String[] input) {
+        String commandType = input[0];
+        if (validCommandType(commandType)) {
+            if (commandType.equals(QUIT.name())) {
+                return of(getDataStore(commandType));
+            }
+            if ((commandType.equals(CREATE.name()) || commandType.equals(UPDATE.name()))
+                    && isValidCreateOrUpdateInput(input)) {
+                return of(getDataStore(Integer.parseInt(input[1]), parseLong(input[2]), input[3], commandType));
+            }
 
 
-        if (input[0].equals(DELETE.name()) && isValidDeleteInput(input)) {
-            if (input.length == 3)
-                return getDataStore(Integer.parseInt(input[1]), parseLong(input[2]), operationType);
-            else
-                return getDataStore(Integer.parseInt(input[1]), operationType);
+            if (commandType.equals(DELETE.name()) && isValidDeleteInput(input)) {
+                if (input.length == 3)
+                    return of(getDataStore(Integer.parseInt(input[1]), parseLong(input[2]), commandType));
+                else
+                    return of(getDataStore(Integer.parseInt(input[1]), commandType));
+            }
         }
-        return null;
+        return empty();
     }
 
     private static Boolean isValidCreateOrUpdateInput(String[] input) {
@@ -161,24 +162,24 @@ public class test {
         throw new Exception("Invalid input");
     }
 
-    private static TemporalDataStore getDataStore(String operationType) {
-        return new TemporalDataStore(operationType);
+    private static Observation getDataStore(String operationType) {
+        return new Observation(operationType);
     }
 
-    private static TemporalDataStore getDataStore(Integer id, String operationType) {
-        return new TemporalDataStore(id, operationType);
+    private static Observation getDataStore(Integer id, String commandType) {
+        return new Observation(id, commandType);
     }
 
-    private static TemporalDataStore getDataStore(Integer id, Long timestamp, String operationType) {
-        return new TemporalDataStore(id, timestamp, operationType);
+    private static Observation getDataStore(Integer id, Long timestamp, String operationType) {
+        return new Observation(id, timestamp, operationType);
     }
 
-    private static TemporalDataStore getDataStore(Integer id, Long timestamp, String data, String operationType) {
-        return new TemporalDataStore(id, timestamp, data, operationType);
+    private static Observation getDataStore(Integer id, Long timestamp, String data, String operationType) {
+        return new Observation(id, timestamp, data, operationType);
     }
     private static Boolean validCommandType(String commandType) {
         try {
-            COMMAND.valueOf(commandType);
+            valueOf(commandType);
         } catch (IllegalArgumentException ex) {
             System.out.println("Err Please provide a valid operation");
             return false;
