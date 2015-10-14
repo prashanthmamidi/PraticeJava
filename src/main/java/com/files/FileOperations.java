@@ -1,27 +1,23 @@
 package com.files;
 
 import java.io.File;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.util.stream.Stream.of;
 
 public class FileOperations {
 
-    int count = 0;
+    public int countFilesFor(File path) {
 
-    public Integer countFilesFor(File folder) {
-        File[] files = folder.listFiles();
-        for(File file: files) {
-            if (file.isFile()) {
-                count++;
-            } else {
-                countFilesFor(file);
-            }
-        }
+        if(!path.exists()) return 0;
 
- /*       of(files)
-                .map(file -> file.isFile() ? count++ : countFilesFor(file))
-                .count();*/
+        if (path.isFile()) return 1;
 
-        return count;
+        return
+            of(path.listFiles())
+                .mapToInt(file -> file.isFile() ? 1 : countFilesFor(file))
+                .sum();
     }
+
 }
