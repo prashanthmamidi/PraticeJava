@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 public class DepositStepDefinitions {
     private  Account account;
 
-   // @Given("^a User has no money in their account$")
+   // @Given("^a UserDetails has no money in their account$")
     public void a_user_has_no_money_in_their_current_account() {
         User user = new User();
         account = new Account();

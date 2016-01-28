@@ -1,6 +1,9 @@
 package com.json.examples;
 
-import java.io.File;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 
 /**
@@ -10,13 +13,13 @@ import java.io.IOException;
 public class JavaTOJSON {
 
     public static void main(String[] args) {
-        User user = new User();
-/*        ObjectMapper mapper = new ObjectMapper();
+        UserDetails user = new UserDetails();
+        ObjectMapper mapper = new ObjectMapper();
 
         try {
 
             // convert user object to json string, and save to a file
-            mapper.writeValue(new File("c:\\user.json"), user);
+          //  mapper.writeValue(new File("c:\\user.json"), user);
 
             // display to console
             System.out.println(mapper.writeValueAsString(user));
@@ -33,7 +36,7 @@ public class JavaTOJSON {
 
             e.printStackTrace();
 
-        }*/
+        }
     }
 }
 
