@@ -14,7 +14,7 @@ public class FileOperationsTest {
     @Test
     public void return_the_number_of_files_if_the_path_is_folder() throws Exception {
         assertThat(
-               countFilesFor(new File("src/test/")),
+                countFilesFor(new File("src/test/")),
                 is(6)
         );
     }
